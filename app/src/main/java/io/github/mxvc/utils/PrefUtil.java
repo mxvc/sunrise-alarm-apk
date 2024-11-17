@@ -3,23 +3,45 @@ package io.github.mxvc.utils;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-public class PreferencesUtil {
+import com.luckycatlabs.sunrisesunset.dto.Location;
+
+
+public class PrefUtil {
 
     private static final String PREFS_NAME = "SUNRISE";
-    private static PreferencesUtil instance;
+    private static PrefUtil instance;
     private SharedPreferences sharedPreferences;
     private SharedPreferences.Editor editor;
 
-    private PreferencesUtil(Context context) {
+    private PrefUtil(Context context) {
         sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         editor = sharedPreferences.edit();
     }
 
-    public static synchronized PreferencesUtil getInstance(Context context) {
+    public static synchronized PrefUtil getInstance(Context context) {
         if (instance == null) {
-            instance = new PreferencesUtil(context);
+            instance = new PrefUtil(context);
         }
         return instance;
+    }
+
+    public Location getLocation() {
+        String loc = getString("loc", null);
+        if (loc != null) {
+            String[] arr = loc.split(",");
+
+            double lng = Double.parseDouble(arr[0]);
+            double lat = Double.parseDouble(arr[1]);
+            return new Location(lat, lng);
+        }
+        return null;
+    }
+
+    public void saveLocation(android.location.Location location) {
+        double latitude = location.getLatitude();
+        double longitude = location.getLongitude();
+
+        saveString("loc", longitude + "," + latitude);
     }
 
     // 保存字符串

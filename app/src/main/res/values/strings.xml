@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">sunrise-alarm</string>
+    <string name="settingLabel">时区: %s \n当前时间: %s \n经纬度 : %s \n闹钟时间:%s</string>
 </resources>

@@ -13,15 +13,14 @@ import java.util.TimeZone;
 
 public class Util {
 
-    public static Date getNextTime(){
+    public static Date getNextTime( Location location){
 
-        TimeZone timeZone = TimeZone.getTimeZone("Asia/Shanghai");
+        TimeZone timeZone = TimeZone.getDefault();
         Calendar now = Calendar.getInstance(timeZone);
         System.out.println("当前时区" + timeZone.getDisplayName());
 
 
 
-        Location location = new Location("26.628081035604723", "106.65109092554405");
 
         SunriseSunsetCalculator calculator = new SunriseSunsetCalculator(location, timeZone);
         Calendar officialSunrise = calculator.getOfficialSunriseCalendarForDate(now);
