@@ -10,14 +10,14 @@ import java.util.Date;
 import java.util.TimeZone;
 
 import cn.hutool.core.date.DateUtil;
+import io.github.mxvc.BuildConfig;
 
 public class SunUtil {
 
-    private static boolean debug = true;
 
 
     public static Date getNextTime(Location location){
-        if(debug){
+        if (BuildConfig.DEBUG) {
             return DateUtil.offsetMinute(new Date(), 1);
         }
         TimeZone timeZone = TimeZone.getDefault();

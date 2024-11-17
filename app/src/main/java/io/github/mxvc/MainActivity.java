@@ -12,6 +12,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
@@ -29,7 +30,10 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 
+import cn.hutool.core.date.BetweenFormatter;
+import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
+import io.github.mxvc.utils.AlarmUtil;
 import io.github.mxvc.utils.GPSUtil;
 import io.github.mxvc.utils.PrefUtil;
 import io.github.mxvc.utils.SunUtil;
@@ -37,18 +41,39 @@ import io.github.mxvc.utils.SunUtil;
 public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener, LocationListener {
 
     private static final String TAG = "SUN-RISE";
-    private static final int ALARM_REQUEST_CODE = 100;
+
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 101;
     public static final String KEY_STATUS = "status";
-    public static final String KEY_TIME = "time";
+
 
     private ImageView imageView;
     private Switch sw;
+    private TextView timeLabel;
 
     private PrefUtil prefUtil ;
 
     private  Location currentLocation;
+
+    private Handler handler = new Handler();
+    private Runnable updateFrame = new Runnable() {
+        @Override
+        public void run() {
+            // 更新界面
+            long nextTime = prefUtil.getNextTime();
+
+            if(nextTime <= 0){
+                timeLabel.setText("未启用");
+            }else {
+                String between = DateUtil.formatBetween(new Date(), new Date(nextTime), BetweenFormatter.Level.SECOND);
+                timeLabel.setText(between);
+            }
+
+            // 每隔一秒再次执行
+            handler.postDelayed(this, 1000);
+        }
+    };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +81,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         setContentView(R.layout.activity_main);
         imageView = findViewById(R.id.backgroundImageView);
         sw = findViewById(R.id.switch1);
+        timeLabel = findViewById(R.id.timeLabel);
+
         prefUtil = PrefUtil.getInstance(this);
 
         sw.setOnCheckedChangeListener(this);
@@ -70,7 +97,12 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         sw.setChecked(status);
         sw.setEnabled(gps);
         handleStatus(status);
+
+
+        handler.postDelayed(updateFrame,1000);
     }
+
+
 
 
     @Override
@@ -97,10 +129,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         prefUtil.saveBoolean(KEY_STATUS, true);
 
 
-
-
-
-        setAlarm();
+        AlarmUtil.setAlarm(this);
     }
 
     private void disable() {
@@ -112,31 +141,15 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
         prefUtil.saveBoolean(KEY_STATUS, false);
 
-        cancelAlarm();
+        AlarmUtil.cancelAlarm(this);
 
-        prefUtil.remove(KEY_TIME);
+        prefUtil.removeNextTime();
     }
 
 
-    private void setAlarm() {
-        Date nextTime = SunUtil.getNextTime(prefUtil.getLocation());
-        prefUtil.saveLong(KEY_TIME,nextTime.getTime());
 
-        long alarmTime = nextTime.getTime();
 
-        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
-        Intent intent = new Intent(this, AlarmReceiver.class);
-        PendingIntent alarmIntent = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, intent, PendingIntent.FLAG_IMMUTABLE);
-        alarmManager.set(AlarmManager.RTC_WAKEUP, alarmTime, alarmIntent);
-    }
-
-    public void cancelAlarm() {
-        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        Intent intent = new Intent(this, AlarmReceiver.class);
-        PendingIntent alarmIntent = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, intent, PendingIntent.FLAG_IMMUTABLE);
-        alarmManager.cancel(alarmIntent);
-    }
 
     private boolean getGPS() {
         LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -195,8 +208,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         sw.setEnabled(true);
 
         if(sw.isChecked()){
-            cancelAlarm();
-            setAlarm();
+            AlarmUtil.cancelAlarm(this);
+            AlarmUtil.setAlarm(this);
         }
     }
 
@@ -224,7 +237,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         sb.append("当前时间: ").append(DateUtil.now()).append("\n");
 
 
-        long time = prefUtil.getLong(KEY_TIME, 0);
+        long time = prefUtil.getNextTime();
         if(time > 0){
             String alertTime = DateUtil.formatDateTime(new Date(time));
             sb.append("闹钟时间: ").append(alertTime).append("\n");
@@ -234,6 +247,10 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
         TextView textView = findViewById(R.id.settingLabel);
         textView.setText(sb);
+    }
+
+    private void renderTime(){
+
     }
 
 

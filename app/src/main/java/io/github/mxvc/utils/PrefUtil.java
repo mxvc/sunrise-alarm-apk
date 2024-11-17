@@ -13,6 +13,9 @@ public class PrefUtil {
     private SharedPreferences sharedPreferences;
     private SharedPreferences.Editor editor;
 
+
+    public static final String KEY_TIME = "time";
+
     private PrefUtil(Context context) {
         sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         editor = sharedPreferences.edit();
@@ -45,6 +48,17 @@ public class PrefUtil {
         double longitude = location.getLongitude();
 
         saveString("loc", longitude + "," + latitude);
+    }
+
+    public void saveNextTime(long time) {
+        saveLong(KEY_TIME, time);
+    }
+
+    public long getNextTime(){
+        return getLong(KEY_TIME, 0);
+    }
+    public void removeNextTime(){
+        remove(KEY_TIME);
     }
 
     // 保存字符串
@@ -113,4 +127,6 @@ public class PrefUtil {
         editor.clear();
         editor.apply();
     }
+
+
 }
