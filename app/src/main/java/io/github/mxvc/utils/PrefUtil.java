@@ -36,6 +36,9 @@ public class PrefUtil {
         }
         return null;
     }
+    public String getLocationStr() {
+        return getString("loc", "无");
+    }
 
     public void saveLocation(android.location.Location location) {
         double latitude = location.getLatitude();

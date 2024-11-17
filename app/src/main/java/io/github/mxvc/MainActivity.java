@@ -23,16 +23,16 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
-import java.text.DateFormat;
-import java.time.format.DateTimeFormatter;
+import com.luckycatlabs.sunrisesunset.SunriseSunsetCalculator;
+
+import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 
-import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.date.DateUtil;
 import io.github.mxvc.utils.GPSUtil;
 import io.github.mxvc.utils.PrefUtil;
-import io.github.mxvc.utils.Util;
+import io.github.mxvc.utils.SunUtil;
 
 public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener, LocationListener {
 
@@ -47,6 +47,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     private Switch sw;
 
     private PrefUtil prefUtil ;
+
+    private  Location currentLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,10 +98,9 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
 
 
-        Date nextTime = Util.getNextTime(prefUtil.getLocation());
-        prefUtil.saveLong(KEY_TIME,nextTime.getTime());
 
-        setAlarm(nextTime.getTime());
+
+        setAlarm();
     }
 
     private void disable() {
@@ -117,14 +118,17 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     }
 
 
-    private void setAlarm(long alarmTime) {
+    private void setAlarm() {
+        Date nextTime = SunUtil.getNextTime(prefUtil.getLocation());
+        prefUtil.saveLong(KEY_TIME,nextTime.getTime());
+
+        long alarmTime = nextTime.getTime();
+
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
         Intent intent = new Intent(this, AlarmReceiver.class);
         PendingIntent alarmIntent = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, intent, PendingIntent.FLAG_IMMUTABLE);
         alarmManager.set(AlarmManager.RTC_WAKEUP, alarmTime, alarmIntent);
-
-
     }
 
     public void cancelAlarm() {
@@ -177,11 +181,11 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         System.out.println("位置变化" + location);
 
         handleGetGps(location);
+        render();
     }
 
     private void handleGetGps(Location location) {
-
-
+        currentLocation = location;
         prefUtil.saveLocation(location);
         Log.i(TAG, "获取到经纬度" + location);
 
@@ -189,29 +193,47 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         lm.removeUpdates(this);
 
         sw.setEnabled(true);
+
+        if(sw.isChecked()){
+            cancelAlarm();
+            setAlarm();
+        }
     }
 
 
     private void render() {
-        CharSequence label = getResources().getText(R.string.settingLabel);
+        StringBuilder sb = new StringBuilder();
+
+        String zone = TimeZone.getDefault().getDisplayName();
+        sb.append("时区: ").append(zone).append("\n");
+
+        if(currentLocation != null){
+            double lng = currentLocation.getLongitude();
+            double lat = currentLocation.getLatitude();
+            sb.append("经度: ").append(lng).append("\n");
+            sb.append("纬度: ").append(lat).append("\n");
+            SunriseSunsetCalculator calc = new SunriseSunsetCalculator(new com.luckycatlabs.sunrisesunset.dto.Location(lat,lng),TimeZone.getDefault());
+            Calendar now = Calendar.getInstance();
+
+            sb.append("日出（天文）:").append(calc.getAstronomicalSunriseForDate(now)).append("\n");
+            sb.append("日出（航海）:").append(calc.getNauticalSunriseForDate(now)).append("\n");
+            sb.append("日出（民用）:").append(calc.getCivilSunriseForDate(now)).append("\n");
+            sb.append("日出（官方）:").append(calc.getOfficialSunriseForDate(now)).append("\n");
+        }
+
+        sb.append("当前时间: ").append(DateUtil.now()).append("\n");
 
 
         long time = prefUtil.getLong(KEY_TIME, 0);
-        String alertTime = DateUtil.formatDateTime(new Date(time));
-
-
-        String zone = TimeZone.getDefault().getDisplayName();
-
-        String now = DateUtil.formatDateTime(new Date());
-
-        com.luckycatlabs.sunrisesunset.dto.Location location = prefUtil.getLocation();
-
-        String locInfo = location.getLongitude()  + "," + location.getLatitude();
-
-        String format = String.format(label.toString(), zone, now, locInfo, alertTime);
+        if(time > 0){
+            String alertTime = DateUtil.formatDateTime(new Date(time));
+            sb.append("闹钟时间: ").append(alertTime).append("\n");
+        }else {
+            sb.append("闹钟时间: ").append("未设置").append("\n");
+        }
 
         TextView textView = findViewById(R.id.settingLabel);
-        textView.setText(format);
+        textView.setText(sb);
     }
 
 
