@@ -28,7 +28,7 @@ public class AlarmUtil {
 
         Intent intent = new Intent(context, AlarmReceiver.class);
         PendingIntent alarmIntent = PendingIntent.getBroadcast(context, ALARM_REQUEST_CODE, intent, PendingIntent.FLAG_IMMUTABLE);
-        alarmManager.setWindow(AlarmManager.RTC_WAKEUP, alarmTime,60, alarmIntent);
+        alarmManager.setExact(AlarmManager.RTC_WAKEUP, alarmTime, alarmIntent); // 精确闹钟， 如果使用set是不精确的
     }
 
     public static void cancelAlarm(Context context) {
