@@ -11,12 +11,14 @@ import android.text.format.DateUtils;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.Switch;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.versionedparcelable.ParcelUtils;
 
 import java.util.Date;
 
+import cn.hutool.core.date.DateUtil;
 import io.github.mxvc.utils.PreferencesUtil;
 import io.github.mxvc.utils.Util;
 
@@ -39,8 +41,6 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         sw.setChecked(on);
         handleStatus(on);
 
-        Date d = Util.getNextTime();
-        System.err.println("---------");
 
 
     }
@@ -63,7 +63,12 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         imageView.setColorFilter(null);
         PreferencesUtil.getInstance(this).saveBoolean("status", true);
 
-        setAlarm(System.currentTimeMillis() + 1000 * 5);
+
+        Date nextTime = Util.getNextTime();
+        Toast.makeText(this, DateUtil.formatDateTime(nextTime), Toast.LENGTH_SHORT).show();
+
+
+       // setAlarm(System.currentTimeMillis() + 1000 * 5);
     }
 
     private void disable() {
@@ -84,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         Intent intent = new Intent(this, AlarmReceiver.class);
         PendingIntent alarmIntent = PendingIntent.getBroadcast(this, ALARM_REQUEST_CODE, intent, PendingIntent.FLAG_IMMUTABLE);
         alarmManager.set(AlarmManager.RTC_WAKEUP, alarmTime, alarmIntent);
+
 
     }
 
